@@ -13,8 +13,8 @@ Development of this extension is supported by [Master Tigra, Inc.](https://githu
 
 ## Native SDK versions
 
-* iOS `v2.3.4`
-* Android `v3.4.2`
+* iOS `v2.6.2` (Jan 10, 2018)
+* Android `v3.7.1` (Dec 15, 2017)
 
 ## Getting started
 
@@ -95,34 +95,76 @@ For Android support, modify `manifestAdditions` element so that it contains the 
             <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
             <!-- START: ShortcutBadger -->
+
             <!-- Samsung -->
             <uses-permission android:name="com.sec.android.provider.badge.permission.READ"/>
             <uses-permission android:name="com.sec.android.provider.badge.permission.WRITE"/>
+
             <!-- HTC -->
             <uses-permission android:name="com.htc.launcher.permission.READ_SETTINGS"/>
             <uses-permission android:name="com.htc.launcher.permission.UPDATE_SHORTCUT"/>
+
             <!-- Sony -->
             <uses-permission android:name="com.sonyericsson.home.permission.BROADCAST_BADGE"/>
             <uses-permission android:name="com.sonymobile.home.permission.PROVIDER_INSERT_BADGE"/>
+
             <!-- Apex -->
             <uses-permission android:name="com.anddoes.launcher.permission.UPDATE_COUNT"/>
+
             <!-- Solid -->
             <uses-permission android:name="com.majeur.launcher.permission.UPDATE_BADGE"/>
+
             <!-- Huawei -->
             <uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE" />
             <uses-permission android:name="com.huawei.android.launcher.permission.READ_SETTINGS" />
             <uses-permission android:name="com.huawei.android.launcher.permission.WRITE_SETTINGS" />
+
+            <!-- ZUK -->
+            <uses-permission android:name="android.permission.READ_APP_BADGE"/>
+
+            <!-- OPPO -->
+            <uses-permission android:name="com.oppo.launcher.permission.READ_SETTINGS"/>
+            <uses-permission android:name="com.oppo.launcher.permission.WRITE_SETTINGS"/>
+
+            <!-- EvMe -->
+            <uses-permission android:name="me.everything.badger.permission.BADGE_COUNT_READ"/>
+            <uses-permission android:name="me.everything.badger.permission.BADGE_COUNT_WRITE"/>
+
             <!-- End: ShortcutBadger -->
 
             <application>
 
-                <!-- OneSignal BEGIN -->
                 <meta-data android:name="com.google.android.gms.version"
                             android:value="@integer/google_play_services_version" />
+
+                <!-- OneSignal BEGIN -->
                 <meta-data android:name="onesignal_app_id"
                             android:value="{ONE-SIGNAL-APP-ID}" />
                 <meta-data android:name="onesignal_google_project_number"
                             android:value="str:{GOOGLE-SENDER-ID}" />
+
+                <receiver android:name="com.onesignal.NotificationOpenedReceiver" />
+                <service android:name="com.onesignal.GcmIntentService" />
+
+                <!-- For Android O -->
+                <service android:name="com.onesignal.GcmIntentJobService"
+                        android:permission="android.permission.BIND_JOB_SERVICE" />
+
+                <service android:name="com.onesignal.SyncJobService"
+                        android:permission="android.permission.BIND_JOB_SERVICE" />
+
+                <service android:name="com.onesignal.RestoreJobService"
+                    android:permission="android.permission.BIND_JOB_SERVICE" />
+
+                <service android:name="com.onesignal.RestoreKickoffJobService"
+                    android:permission="android.permission.BIND_JOB_SERVICE" />
+                <!-- END - For Android O -->
+
+                <service android:name="com.onesignal.SyncService" />
+                <activity android:name="com.onesignal.PermissionsActivity"
+                        android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+                <service android:name="com.onesignal.NotificationRestoreService" />
 
                 <receiver android:name="com.onesignal.GcmBroadcastReceiver"
                             android:permission="com.google.android.c2dm.permission.SEND" >
@@ -131,14 +173,10 @@ For Android support, modify `manifestAdditions` element so that it contains the 
                         <category android:name="{APP-PACKAGE-NAME}" />
                     </intent-filter>
                 </receiver>
-                <receiver android:name="com.onesignal.NotificationOpenedReceiver" />
-                <service android:name="com.onesignal.GcmIntentService" />
-                <service android:name="com.onesignal.SyncService" android:stopWithTask="false" />
-                <activity android:name="com.onesignal.PermissionsActivity" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-                <service android:name="com.onesignal.NotificationRestoreService" />
                 <receiver android:name="com.onesignal.BootUpReceiver">
                     <intent-filter>
+                        <action android:name="android.intent.action.ACTION_BOOT_COMPLETED" />
                         <action android:name="android.intent.action.BOOT_COMPLETED" />
                         <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                     </intent-filter>
@@ -295,6 +333,12 @@ ANT build scripts are available in the [build](build/) directory. Edit [build.pr
 The ANE has been written by [Marcel Piestansky](https://twitter.com/marpies) and is distributed under [Apache License, version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 ## Changelog
+
+#### January 20, 2017 (v1.3.0)
+
+* UPDATED OneSignal SDKs for both iOS (v2.6.2) and Android (v3.7.1)
+* ADDED `clearOneSignalNotifications` APIs
+* FIXED empty notification message on Android
 
 #### December 20, 2016 (v1.2.0)
 

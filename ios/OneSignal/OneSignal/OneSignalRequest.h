@@ -1,7 +1,7 @@
 /**
  * Modified MIT License
  *
- * Copyright 2016 OneSignal
+ * Copyright 2017 OneSignal
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +26,21 @@
  */
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+
+typedef enum {GET, POST, HEAD, PUT, DELETE, OPTIONS, CONNECT, TRACE} HTTPMethod;
+#define httpMethodString(enum) [@[@"GET", @"POST", @"HEAD", @"PUT", @"DELETE", @"OPTIONS", @"CONNECT", @"TRACE"] objectAtIndex:enum]
 
 
-@interface OneSignalAlertView : NSObject
-+ (void)showInAppAlert:(NSDictionary*)messageDict;
+#ifndef OneSignalRequest_h
+#define OneSignalRequest_h
+
+@interface OneSignalRequest : NSObject
+
+@property (nonatomic) HTTPMethod method;
+@property (nonatomic, nonnull) NSString *path;
+@property (nonatomic, nullable) NSDictionary *parameters;
+-(BOOL)missingAppId; //for requests that don't require an appId parameter, the subclass should override this method and return false
+-(NSMutableURLRequest * _Nonnull )request;
 @end
 
-@interface OneSignalAlertViewDelegate : NSObject <UIAlertViewDelegate>
-- (id)initWithMessageDict:(NSDictionary*)messageDict;
-@end
+#endif

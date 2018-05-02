@@ -77,15 +77,18 @@ static NSString* const kPushOSDefaultsSubscriptionKey = @"pushos_subscription";
     }
 
     if( autoRegister ) {
-        [self idsAvailable];
+        [self registerForPushNotifications];
     }
 }
 
 - (void) registerForPushNotifications {
     if( !mHasRegistered ) {
-        mHasRegistered = YES;
-        [OneSignal registerForPushNotifications];
-        [self idsAvailable];
+        [OneSignal promptForPushNotificationsWithUserResponse:^(BOOL accepted) {
+            if( accepted ) {
+                mHasRegistered = YES;
+                [self idsAvailable];
+            }
+        }];
     } else {
         [AIROneSignal log:@"User has already registered for push notifications, ignoring."];
     }
@@ -148,17 +151,17 @@ static NSString* const kPushOSDefaultsSubscriptionKey = @"pushos_subscription";
      * This behavior would differ from Android so we prevent that here. */
     if( !mHasRegistered ) return;
     
-    [OneSignal IdsAvailable:^(NSString *userId, NSString *pushToken) {
-        [AIROneSignal log:[NSString stringWithFormat:@"OneSignal::idsAvailable %@ | token: %@", userId, pushToken]];
-        NSMutableDictionary* response = [NSMutableDictionary dictionary];
-        if( userId != nil ) {
-            response[@"userId"] = userId;
-        }
-        if( pushToken != nil ) {
-            response[@"pushToken"] = pushToken;
-        }
-        [AIROneSignal dispatchEvent:OS_TOKEN_RECEIVED withMessage:[MPStringUtils getJSONString:response]];
-    }];
+    OSPermissionSubscriptionState* state = [OneSignal getPermissionSubscriptionState];
+    OSSubscriptionState* subState = state.subscriptionStatus;
+    
+    NSMutableDictionary* response = [NSMutableDictionary dictionary];
+    if( subState.userId != nil ) {
+        response[@"userId"] = subState.userId;
+    }
+    if( subState.pushToken != nil ) {
+        response[@"pushToken"] = subState.pushToken;
+    }
+    [AIROneSignal dispatchEvent:OS_TOKEN_RECEIVED withMessage:[MPStringUtils getJSONString:response]];
 }
 
 - (BOOL) isInitialized {
@@ -192,8 +195,8 @@ static NSString* const kPushOSDefaultsSubscriptionKey = @"pushos_subscription";
             json[key] = payload.additionalData[key];
         }
     }
-    if( payload.actionButtons != nil ) {
-        json[@"actionButtons"] = [self getButtons:(NSArray*)payload.actionButtons];
+    if( payload.actionButtons != nil && payload.actionButtons.count > 0 ) {
+        json[@"actionButtons"] = [self getButtons:payload.actionButtons];
         NSString* actionSelected = @"__DEFAULT__";
         if( action != nil && action.actionID != nil ) {
             actionSelected = action.actionID;
@@ -220,8 +223,8 @@ static NSString* const kPushOSDefaultsSubscriptionKey = @"pushos_subscription";
     NSMutableArray* buttons = [NSMutableArray array];
     for( NSDictionary* button in buttonsRaw ) {
         [buttons addObject:@{
-                             @"id": button[@"i"] ? button[@"i"] : button[@"n"],
-                             @"text": button[@"n"]
+                             @"id": button[@"id"],
+                             @"text": button[@"text"]
                              }];
     }
     return buttons;

@@ -29,24 +29,35 @@
 
 #import "OneSignalTracker.h"
 #import "OneSignalHelper.h"
-#import "OneSignalHTTPClient.h"
 #import "OneSignalWebView.h"
+#import "OneSignalClient.h"
+#import "Requests.h"
 
 @interface OneSignal ()
 
 + (void)registerUser;
-+ (void) sendNotificationTypesUpdate;
-+ (BOOL) clearBadgeCount:(BOOL)fromNotifOpened;
++ (BOOL)sendNotificationTypesUpdate;
++ (BOOL)clearBadgeCount:(BOOL)fromNotifOpened;
 + (NSString*)mUserId;
 
 @end
 
 @implementation OneSignalTracker
 
-NSNumber* unSentActiveTime;
-UIBackgroundTaskIdentifier focusBackgroundTask;
-NSTimeInterval lastOpenedTime;
-BOOL lastOnFocusWasToBackground = YES;
+static NSNumber* unSentActiveTime;
+static UIBackgroundTaskIdentifier focusBackgroundTask;
+static NSTimeInterval lastOpenedTime;
+static BOOL lastOnFocusWasToBackground = YES;
+
+
++ (void)resetLocals {
+    unSentActiveTime = nil;
+    focusBackgroundTask = 0;
+    lastOpenedTime = 0;
+    lastOnFocusWasToBackground = YES;
+}
+
+
 
 + (void) beginBackgroundFocusTask {
     focusBackgroundTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
@@ -59,10 +70,12 @@ BOOL lastOnFocusWasToBackground = YES;
     focusBackgroundTask = UIBackgroundTaskInvalid;
 }
 
+
+
 + (void)onFocus:(BOOL)toBackground {
     
-    //Prevent the onFocus to be called twice when app being terminated
-    // (Both WillResignActive and willTerminate
+    // Prevent the onFocus to be called twice when app being terminated
+    //    - Both WillResignActive and willTerminate
     if (lastOnFocusWasToBackground == toBackground)
         return;
     lastOnFocusWasToBackground = toBackground;
@@ -73,13 +86,7 @@ BOOL lastOnFocusWasToBackground = YES;
     NSTimeInterval timeToPingWith = 0.0;
     
     
-    if (!toBackground) {
-        lastOpenedTime = now;
-        [OneSignal sendNotificationTypesUpdate];
-        wasBadgeSet = [OneSignal clearBadgeCount:false];
-    }
-    else {
-
+    if (toBackground) {
         [[NSUserDefaults standardUserDefaults] setDouble:now forKey:@"GT_LAST_CLOSED_TIME"];
         [[NSUserDefaults standardUserDefaults] synchronize];
         
@@ -96,27 +103,24 @@ BOOL lastOnFocusWasToBackground = YES;
         }
         
         timeToPingWith = totalTimeActive;
+    }
+    else {
+        lastOpenedTime = now;
+        BOOL firedUpdate = [OneSignal sendNotificationTypesUpdate];
         
+        // on_session tracking when resumming app.
+        if (!firedUpdate && [OneSignal mUserId])
+            [OneSignal registerUser];
+        wasBadgeSet = [OneSignal clearBadgeCount:false];
     }
     
     if (![OneSignal mUserId])
         return;
     
-    OneSignalHTTPClient * httpClient = [[OneSignalHTTPClient alloc] init];
-    
     // If resuming and badge was set, clear it on the server as well.
     if (wasBadgeSet && !toBackground) {
-        NSMutableURLRequest* request = [httpClient requestWithMethod:@"PUT" path:[NSString stringWithFormat:@"players/%@", [OneSignal mUserId]]];
+        [OneSignalClient.sharedClient executeRequest:[OSRequestOnFocus withUserId:[OneSignal mUserId] appId:[OneSignal app_id] badgeCount:@0] onSuccess:nil onFailure:nil];
         
-        NSDictionary* dataDic = [NSDictionary dictionaryWithObjectsAndKeys:
-                                 [OneSignal app_id], @"app_id",
-                                 @0, @"badge_count",
-                                 nil];
-        
-        NSData* postData = [NSJSONSerialization dataWithJSONObject:dataDic options:0 error:nil];
-        [request setHTTPBody:postData];
-        
-        [OneSignalHelper enqueueRequest:request onSuccess:nil onFailure:nil];
         return;
     }
     
@@ -126,23 +130,8 @@ BOOL lastOnFocusWasToBackground = YES;
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             [OneSignalTracker beginBackgroundFocusTask];
             
-            NSMutableURLRequest* request = [httpClient requestWithMethod:@"POST" path:[NSString stringWithFormat:@"players/%@/on_focus", [OneSignal mUserId]]];
-            NSDictionary* dataDic = [NSDictionary dictionaryWithObjectsAndKeys:
-                                     [OneSignal app_id], @"app_id",
-                                     @"ping", @"state",
-                                     @1, @"type",
-                                     @(timeToPingWith), @"active_time",
-                                     [OneSignalHelper getNetType], @"net_type",
-                                     nil];
+            [OneSignalClient.sharedClient executeSynchronousRequest:[OSRequestOnFocus withUserId:[OneSignal mUserId] appId:[OneSignal app_id] state:@"ping" type:@1 activeTime:@(timeToPingWith) netType:[OneSignalHelper getNetType]] onSuccess:nil onFailure:nil];
             
-            NSData* postData = [NSJSONSerialization dataWithJSONObject:dataDic options:0 error:nil];
-            [request setHTTPBody:postData];
-            
-            // We are already running in a thread so send the request synchronous to keep the thread alive.
-            [OneSignalHelper enqueueRequest:request
-                                  onSuccess:nil
-                                  onFailure:nil
-                              isSynchronous:true];
             [OneSignalTracker endBackgroundFocusTask];
         });
     }
