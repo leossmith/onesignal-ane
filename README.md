@@ -14,7 +14,7 @@ Development of this extension is supported by [Master Tigra, Inc.](https://githu
 ## Native SDK versions
 
 * iOS `v2.6.2` (Jan 10, 2018)
-* Android `v3.8.2` (May 3, 2018)
+* Android `v3.8.4` (May 3, 2018)
 
 ## Getting started
 
