@@ -14,7 +14,7 @@ Development of this extension is supported by [Master Tigra, Inc.](https://githu
 ## Native SDK versions
 
 * iOS `v2.6.2` (Jan 10, 2018)
-* Android `v3.7.1` (Dec 15, 2017)
+* Android `v3.8.2` (May 3, 2018)
 
 ## Getting started
 
@@ -333,6 +333,10 @@ ANT build scripts are available in the [build](build/) directory. Edit [build.pr
 The ANE has been written by [Marcel Piestansky](https://twitter.com/marpies) and is distributed under [Apache License, version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 ## Changelog
+
+#### May 3, 2018 (v1.4.0)
+
+* UPDATED OneSignal SDKs for Android (v3.8.2)
 
 #### January 20, 2017 (v1.3.0)
 
